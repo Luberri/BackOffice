@@ -12,8 +12,11 @@ import com.backoffice.dao.ReservationDAO;
 import com.backoffice.model.Reservation;
 import com.backoffice.model.Hotel;
 
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 public class ReservationController {
@@ -49,7 +52,16 @@ public class ReservationController {
             Reservation reservation = new Reservation();
             reservation.setClientId(clientId);
             reservation.setNombrePassager(nombrePassager);
-            reservation.setDateArrivee(Timestamp.valueOf(dateArrivee.replace("T", " ") + ":00"));
+            
+            String dateTimeStr = dateArrivee.replace("T", " ");
+            if (!dateTimeStr.contains(":")) {
+                dateTimeStr += " 00:00:00";
+            } else if (dateTimeStr.split(":").length == 2) {
+                dateTimeStr += ":00";
+            }
+            LocalDateTime ldt = LocalDateTime.parse(dateTimeStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            reservation.setDateArrivee(ldt);
+            
             reservation.setHotelId(hotelId);
 
             reservationDAO.insert(reservation);
@@ -59,7 +71,6 @@ public class ReservationController {
             mv.addData("error", "Erreur lors de l'enregistrement : " + e.getMessage());
         }
 
-        // Recharger la liste des hôtels pour le formulaire
         try {
             List<Hotel> hotels = hotelDAO.findAll();
             mv.addData("hotels", hotels);
@@ -71,15 +82,20 @@ public class ReservationController {
     }
 
     /**
-     * API REST: Retourne la liste des réservations en JSON
+     * API REST: Retourne la liste des réservations
      */
     @GET("api/reservation/list")
     @RestAPI
-    public List<Reservation> listJSON() {
+    public Map<String, Object> listJSON() {
+        Map<String, Object> response = new HashMap<>();
         try {
-            return reservationDAO.findAll();
+            List<Reservation> reservations = reservationDAO.findAll();
+            response.put("status", "success");
+            response.put("data", reservations);
         } catch (Exception e) {
-            throw new RuntimeException("Erreur lors de la récupération des réservations", e);
+            response.put("status", "error");
+            response.put("message", e.getMessage());
         }
+        return response;
     }
 }

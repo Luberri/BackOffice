@@ -4,6 +4,7 @@ import com.backoffice.database.DatabaseConnection;
 import com.backoffice.model.Reservation;
 
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,7 +18,8 @@ public class ReservationDAO {
 
             ps.setString(1, reservation.getClientId());
             ps.setInt(2, reservation.getNombrePassager());
-            ps.setTimestamp(3, reservation.getDateArrivee());
+            // Convert LocalDateTime to Timestamp
+            ps.setTimestamp(3, Timestamp.valueOf(reservation.getDateArrivee()));
             ps.setInt(4, reservation.getHotelId());
             ps.executeUpdate();
         }
@@ -36,7 +38,9 @@ public class ReservationDAO {
                 r.setId(rs.getInt("id"));
                 r.setClientId(rs.getString("client_id"));
                 r.setNombrePassager(rs.getInt("nombre_passager"));
-                r.setDateArrivee(rs.getTimestamp("date_arrivee"));
+                // Convert Timestamp to LocalDateTime
+                Timestamp ts = rs.getTimestamp("date_arrivee");
+                r.setDateArrivee(ts != null ? ts.toLocalDateTime() : null);
                 r.setHotelId(rs.getInt("hotel_id"));
                 reservations.add(r);
             }

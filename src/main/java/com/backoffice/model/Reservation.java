@@ -1,12 +1,13 @@
 package com.backoffice.model;
 
-import java.sql.Timestamp;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import java.time.LocalDateTime;
 
 public class Reservation {
     private int id;
     private String clientId;
     private int nombrePassager;
-    private Timestamp dateArrivee;
+    private LocalDateTime dateArrivee;
     private int hotelId;
 
     public Reservation() {
@@ -36,11 +37,12 @@ public class Reservation {
         this.nombrePassager = nombrePassager;
     }
 
-    public Timestamp getDateArrivee() {
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    public LocalDateTime getDateArrivee() {
         return dateArrivee;
     }
 
-    public void setDateArrivee(Timestamp dateArrivee) {
+    public void setDateArrivee(LocalDateTime dateArrivee) {
         this.dateArrivee = dateArrivee;
     }
 
