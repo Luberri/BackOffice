@@ -66,3 +66,4 @@ INSERT INTO reservation (client_id, nombre_passager, date_arrivee, hotel_id, aer
 ('c3', 3, '2026-04-01 16:00:00', 1, 1);
 
 COMMIT;
+
