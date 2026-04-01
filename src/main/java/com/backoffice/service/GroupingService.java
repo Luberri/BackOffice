@@ -168,13 +168,6 @@ public class GroupingService {
                 windowClients.addAll(windowNew);
                 previousWindowEndMs = currentWindowEndMs;
 
-                long latestWindowReservationArrivalMs = anchorTime;
-                for (Reservation reservation : windowNew) {
-                    latestWindowReservationArrivalMs = Math.max(
-                            latestWindowReservationArrivalMs,
-                            reservation.getDateArrivee().getTime());
-                }
-
                 // Ordre de base: nb passagers décroissant puis arrivée.
                 windowClients.sort((a, b) -> {
                     if (a.isPrioriteAssignation() != b.isPrioriteAssignation()) {
@@ -333,7 +326,9 @@ public class GroupingService {
                 // Créer les groupes pour chaque véhicule assigné
                 for (VehicleWindowState state : vehicleStates.values()) {
                     long baseDepartureMs = Math.max(state.latestAssignedArrivalMs, state.dispatchTimeMs);
-                    long taDepartureFloorMs = Math.max(baseDepartureMs, latestWindowReservationArrivalMs);
+                    // L'heure de départ est pilotée par ce qui est réellement assigné
+                    // au regroupement (pas par une réservation restée non assignée dans la fenêtre).
+                    long taDepartureFloorMs = Math.max(baseDepartureMs, latestAssignedArrival);
                     boolean canDepartDirectly = canDepartImmediatelyFromAvailability(state);
                     long departureMs = canDepartDirectly ? baseDepartureMs : taDepartureFloorMs;
                     Timestamp departureTime = new Timestamp(departureMs);
