@@ -1,2 +1,42 @@
-1-rah misy tomobile tafaverina , ka rah misy reservation non asigne , tonga de mandeha IZY mitondra izay zakany(temps d attente comprise)
-2-rehefa misy regr , rah misy non assigne teo aloha , de izy priorite 
+-les NA sont prioritaires que les nouvelles resa
+-si un vehicule n est pas rempli , on reccree un regroupement a partir du dernier resa qui a entrer dans le vehicule
+
+
++ check ->il n y as pas de reste
+
++regroupement : 08:00-08:30
+->14 r1, 12 r2
+14 > 12 donc on prend r1
+V1 prend 4 de R1 -> reste 10R1
+tri:14 > 12 donc on prend r1
+V2 prend 4 de R1 -> reste 6R1
++plus auccun vehicule dispo pour 08:00-08:30
++6 non assigne(NA) de R1 et 12 NA de r2
+
++regroupement 09:36 - 10:06(retour des 2 vehicules)
+->6 NA de R1 et 12 NA de R2
++tri des NA : 12 > 6 -> on prend R2
+V1 prend 4 de R2 -> reste 8 R2 NA
++tri des NA 8>6
+V2 prend 4 de R2 -> reste 4 R2 NA
++plus auccun vehicule dispo pour 09:36 - 10:06
++4 NA de R2 et 6 NA de R1
+
++regroupement 11:12 - 11:42(retour des 2 vehicules)
+->4 NA de R2 et 6 NA de R1
++tri des NA : 6>4 -> on prend r1
+V1 prend 4 R1 NA -> reste 2 R1 NA
+V2 prend 4 NA de R2 -> reste 0 R2
+tri
++plus auccun vehicule dispo pour 11:12 - 11:42
++2 NA de R1
+
++regroupement 12:48 - 13:18
+->2 NA de R1 et 3 NA de r3
++tri des NA : 3>2 -> on prend r3
+V1 prend 3 R3 , reste vehicule 1 places
+v1 prend 1 NA de R1 , reste 1 NA de R1
+V2 prend 1 NA de R1
+
+
+

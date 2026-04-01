@@ -316,8 +316,9 @@ public class GroupingService {
                     int remainderPassengers = seedClient.getNombrePassager() - allocated;
                     if (remainderPassengers > 0) {
                         Reservation remainder = splitReservation(seedClient, remainderPassengers);
-                        // Un reliquat dans la même fenêtre est un "reste", pas encore un non assigné reporté.
-                        remainder.setPrioriteAssignation(false);
+                        // Le reliquat conserve la priorité de sa source.
+                        // Si la source est un NA reporté, son reste reste prioritaire.
+                        remainder.setPrioriteAssignation(seedClient.isPrioriteAssignation());
                         pendingClients.add(remainder);
                     }
 
@@ -613,6 +614,23 @@ public class GroupingService {
                 continue;
             }
 
+            // Pour les NA reportés, comparer d'abord le reste NA courant (max en premier).
+            if (r.isPrioriteAssignation() && best.isPrioriteAssignation()) {
+                int byRemaining = Integer.compare(r.getNombrePassager(), best.getNombrePassager());
+                if (byRemaining > 0) {
+                    best = r;
+                    continue;
+                }
+                if (byRemaining < 0) {
+                    continue;
+                }
+
+                if (r.getDateArrivee().before(best.getDateArrivee())) {
+                    best = r;
+                }
+                continue;
+            }
+
             int byOrigin = Integer.compare(priorityPassengerCount(r), priorityPassengerCount(best));
             if (byOrigin > 0) {
                 best = r;
@@ -712,8 +730,8 @@ public class GroupingService {
             int remainderPassengers = candidate.getNombrePassager() - allocated;
             if (remainderPassengers > 0) {
                 Reservation remainder = splitReservation(candidate, remainderPassengers);
-                // Tant que la fenêtre courante n'est pas close, on garde ce reliquat comme "reste".
-                remainder.setPrioriteAssignation(false);
+                // Même règle: un reliquat garde la priorité de la réservation source.
+                remainder.setPrioriteAssignation(candidate.isPrioriteAssignation());
                 pendingClients.add(remainder);
             }
         }
@@ -757,22 +775,16 @@ public class GroupingService {
                 continue;
             }
 
-            int byOrigin = Integer.compare(priorityPassengerCount(reservation), priorityPassengerCount(best));
-            if (byOrigin > 0) {
+            int byRemaining = Integer.compare(reservation.getNombrePassager(), best.getNombrePassager());
+            if (byRemaining > 0) {
                 best = reservation;
                 continue;
             }
-            if (byOrigin < 0) {
+            if (byRemaining < 0) {
                 continue;
             }
 
-            int byPassengers = Integer.compare(reservation.getNombrePassager(), best.getNombrePassager());
-            if (byPassengers > 0) {
-                best = reservation;
-                continue;
-            }
-
-            if (byPassengers == 0 && reservation.getDateArrivee().before(best.getDateArrivee())) {
+            if (reservation.getDateArrivee().before(best.getDateArrivee())) {
                 best = reservation;
             }
         }
