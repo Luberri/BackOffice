@@ -706,10 +706,20 @@ public class GroupingService {
         long latestArrival = state.latestAssignedArrivalMs;
 
         while (state.remainingSeats > 0 && !pendingClients.isEmpty()) {
-            Reservation candidate;
-            if (hasPrioritizedPending(pendingClients)) {
+            Reservation candidate = null;
+
+            // Règle exceptionnelle: si le véhicule transporte déjà des NA,
+            // on complète d'abord avec une nouvelle réservation arrivée
+            // exactement à l'heure de (re)disponibilité du véhicule.
+            if (containsPrioritizedPassengers(state.clients)) {
+                candidate = selectNewReservationAtDispatchTime(pendingClients, state.dispatchTimeMs);
+            }
+
+            if (candidate == null && hasPrioritizedPending(pendingClients)) {
                 candidate = selectHighestPriorityPrioritizedClient(pendingClients);
-            } else {
+            }
+
+            if (candidate == null) {
                 candidate = selectBestClientForRemainingSeats(pendingClients, state.remainingSeats, true);
             }
             if (candidate == null) {
@@ -732,6 +742,26 @@ public class GroupingService {
         }
 
         return latestArrival;
+    }
+
+    private Reservation selectNewReservationAtDispatchTime(List<Reservation> clients, long dispatchTimeMs) {
+        Reservation best = null;
+        for (Reservation reservation : clients) {
+            if (reservation == null
+                    || reservation.isPrioriteAssignation()
+                    || reservation.getDateArrivee() == null
+                    || reservation.getDateArrivee().getTime() != dispatchTimeMs) {
+                continue;
+            }
+
+            if (best == null
+                    || reservation.getNombrePassager() > best.getNombrePassager()
+                    || (reservation.getNombrePassager() == best.getNombrePassager()
+                            && reservation.getDateArrivee().before(best.getDateArrivee()))) {
+                best = reservation;
+            }
+        }
+        return best;
     }
 
     private boolean containsPrioritizedPassengers(List<Reservation> reservations) {
@@ -791,21 +821,9 @@ public class GroupingService {
             return false;
         }
 
-        if (!containsPrioritizedPassengers(state.clients)) {
-            return false;
-        }
-
-        for (Reservation reservation : state.clients) {
-            if (reservation.isPrioriteAssignation()) {
-                continue;
-            }
-            if (reservation.getDateArrivee() == null
-                    || reservation.getDateArrivee().getTime() != state.dispatchTimeMs) {
-                return false;
-            }
-        }
-
-        return true;
+        // Règle métier sprint 8 : un véhicule plein qui transporte au moins un
+        // non-assigné reporté part immédiatement, sans attendre les autres véhicules.
+        return containsPrioritizedPassengers(state.clients);
     }
 
     private int compareClientsForVehicleStart(Reservation a, Reservation b) {

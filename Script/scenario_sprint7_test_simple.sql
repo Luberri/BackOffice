@@ -41,8 +41,7 @@ INSERT INTO parametre (temps_attente, vitesse_moyenne) VALUES
 
 -- Distances aller/retour aeroport <-> hotel1
 INSERT INTO distance (lieux_from, lieux_to, valeur) VALUES
-(1, 2, 40),
-(2, 1, 40);
+(1, 2, 40);
 
 -- ====================================================
 -- CAS 1: non assignes restants
@@ -51,19 +50,11 @@ INSERT INTO distance (lieux_from, lieux_to, valeur) VALUES
 INSERT INTO reservation (client_id, nombre_passager, date_arrivee, hotel_id, aeroport_id) VALUES
 ('c1', 14, '2026-04-01 08:00:00', 1, 1);
 
--- Reservation suivante proche:
--- en theorie les non assignes precedents restent prioritaires
 INSERT INTO reservation (client_id, nombre_passager, date_arrivee, hotel_id, aeroport_id) VALUES
-('c2', 12, '2026-04-01 08:05:00', 1, 1);
+('c2', 12, '2026-04-01 09:30:00', 1, 1);
 
--- ====================================================
--- CAS 2: regroupement declenche par retour vehicule
--- Reservation a 09:00, alors que les vehicules sont encore en course
--- => la planification doit attendre un retour de disponibilite
--- Demande = 8 (2 vehicules pleins), sans non assignes
--- ====================================================
 INSERT INTO reservation (client_id, nombre_passager, date_arrivee, hotel_id, aeroport_id) VALUES
-('c3', 3, '2026-04-01 12:00:00', 1, 1);
+('c3', 2, '2026-04-01 14:10:00', 1, 1);
 
 COMMIT;
 
