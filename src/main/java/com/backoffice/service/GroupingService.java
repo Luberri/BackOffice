@@ -249,16 +249,22 @@ public class GroupingService {
                     }
 
                     if (!hasFitNow) {
-                        Long nextFitAvailability = findNextFittingVehicleAvailabilityTime(
+                        int bestCurrentCapacity = 0;
+                        for (Vehicule candidateVehicule : candidates) {
+                            bestCurrentCapacity = Math.max(bestCurrentCapacity, candidateVehicule.getNombrePlace());
+                        }
+
+                        Long nextBetterCapacityAvailability = findNextVehicleAvailabilityWithMinCapacity(
                                 allVehicules,
                                 vehicleStates,
                                 occupations,
                                 dispatchTimeMs,
-                                seedClient.getNombrePassager());
-                        if (nextFitAvailability != null
-                                && nextFitAvailability > dispatchTimeMs
-                                && nextFitAvailability <= currentWindowEndMs) {
-                            dispatchTimeMs = nextFitAvailability;
+                                bestCurrentCapacity + 1);
+
+                        if (nextBetterCapacityAvailability != null
+                                && nextBetterCapacityAvailability > dispatchTimeMs
+                                && nextBetterCapacityAvailability <= currentWindowEndMs) {
+                            dispatchTimeMs = nextBetterCapacityAvailability;
                             continue;
                         }
                     }
@@ -309,9 +315,10 @@ public class GroupingService {
                     int remainderPassengers = seedClient.getNombrePassager() - allocated;
                     if (remainderPassengers > 0) {
                         Reservation remainder = splitReservation(seedClient, remainderPassengers);
-                        // Le reliquat conserve la priorité de sa source.
-                        // Si la source est un NA reporté, son reste reste prioritaire.
-                        remainder.setPrioriteAssignation(seedClient.isPrioriteAssignation());
+                        // Distinction métier:
+                        // - "reste" = reliquat encore dans la fenêtre courante (non prioritaire)
+                        // - "NA"    = reporté à la fenêtre suivante quand la fenêtre est clôturée
+                        remainder.setPrioriteAssignation(false);
                         pendingClients.add(remainder);
                     }
 
@@ -526,6 +533,32 @@ public class GroupingService {
         return bestFitTime;
     }
 
+    private Long findNextVehicleAvailabilityWithMinCapacity(
+            List<Vehicule> allVehicules,
+            Map<Integer, VehicleWindowState> vehicleStates,
+            List<VehiculeOccupation> occupations,
+            long fromTime,
+            int minCapacity) {
+
+        Long bestTime = null;
+
+        for (Vehicule v : allVehicules) {
+            if (v.getNombrePlace() < minCapacity)
+                continue;
+            if (vehicleStates.containsKey(v.getId()))
+                continue;
+
+            long next = Math.max(fromTime, computeInitialAvailabilityTime(v, fromTime));
+            next = getBusyUntil(occupations, v.getId(), next);
+
+            if (bestTime == null || next < bestTime) {
+                bestTime = next;
+            }
+        }
+
+        return bestTime;
+    }
+
     private long computeInitialAvailabilityTime(Vehicule vehicule, long referenceTimeMs) {
         if (vehicule == null || vehicule.getHeureDisponibilite() == null) {
             return referenceTimeMs;
@@ -682,12 +715,6 @@ public class GroupingService {
     }
 
     private int compareClientsForRemainingSeats(Reservation a, Reservation b, int remainingSeats) {
-        boolean aFits = a.getNombrePassager() <= remainingSeats;
-        boolean bFits = b.getNombrePassager() <= remainingSeats;
-        if (aFits != bFits) {
-            return aFits ? -1 : 1;
-        }
-
         int diffA = Math.abs(remainingSeats - a.getNombrePassager());
         int diffB = Math.abs(remainingSeats - b.getNombrePassager());
         if (diffA != diffB) {
@@ -735,8 +762,8 @@ public class GroupingService {
             int remainderPassengers = candidate.getNombrePassager() - allocated;
             if (remainderPassengers > 0) {
                 Reservation remainder = splitReservation(candidate, remainderPassengers);
-                // Même règle: un reliquat garde la priorité de la réservation source.
-                remainder.setPrioriteAssignation(candidate.isPrioriteAssignation());
+                // Même distinction métier: reliquat dans la fenêtre => "reste" non prioritaire.
+                remainder.setPrioriteAssignation(false);
                 pendingClients.add(remainder);
             }
         }
