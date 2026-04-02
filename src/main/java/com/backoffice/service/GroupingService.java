@@ -249,6 +249,15 @@ public class GroupingService {
                     }
 
                     if (!hasFitNow) {
+                        boolean mustUseExactDispatchVehicle = seedClient.getDateArrivee() != null
+                                && seedClient.getDateArrivee().getTime() == dispatchTimeMs
+                                && hasVehicleWithExactAvailability(candidates, dispatchTimeMs);
+
+                        if (mustUseExactDispatchVehicle) {
+                            // Exception métier: si la réservation arrive exactement à l'heure de
+                            // disponibilité d'un véhicule courant, on utilise ce véhicule
+                            // immédiatement (pas d'attente d'un meilleur véhicule futur).
+                        } else {
                         int bestCurrentCapacity = 0;
                         for (Vehicule candidateVehicule : candidates) {
                             bestCurrentCapacity = Math.max(bestCurrentCapacity, candidateVehicule.getNombrePlace());
@@ -266,6 +275,7 @@ public class GroupingService {
                                 && nextBetterCapacityAvailability <= currentWindowEndMs) {
                             dispatchTimeMs = nextBetterCapacityAvailability;
                             continue;
+                        }
                         }
                     }
 
@@ -315,10 +325,8 @@ public class GroupingService {
                     int remainderPassengers = seedClient.getNombrePassager() - allocated;
                     if (remainderPassengers > 0) {
                         Reservation remainder = splitReservation(seedClient, remainderPassengers);
-                        // Distinction métier:
-                        // - "reste" = reliquat encore dans la fenêtre courante (non prioritaire)
-                        // - "NA"    = reporté à la fenêtre suivante quand la fenêtre est clôturée
-                        remainder.setPrioriteAssignation(false);
+                        // Nouvelle règle métier: un "reste" est traité comme un NA.
+                        remainder.setPrioriteAssignation(true);
                         pendingClients.add(remainder);
                     }
 
@@ -559,6 +567,23 @@ public class GroupingService {
         return bestTime;
     }
 
+    private boolean hasVehicleWithExactAvailability(List<Vehicule> vehicules, long dispatchTimeMs) {
+        if (vehicules == null || vehicules.isEmpty()) {
+            return false;
+        }
+
+        for (Vehicule vehicule : vehicules) {
+            if (vehicule == null) {
+                continue;
+            }
+            if (computeInitialAvailabilityTime(vehicule, dispatchTimeMs) == dispatchTimeMs) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private long computeInitialAvailabilityTime(Vehicule vehicule, long referenceTimeMs) {
         if (vehicule == null || vehicule.getHeureDisponibilite() == null) {
             return referenceTimeMs;
@@ -762,8 +787,8 @@ public class GroupingService {
             int remainderPassengers = candidate.getNombrePassager() - allocated;
             if (remainderPassengers > 0) {
                 Reservation remainder = splitReservation(candidate, remainderPassengers);
-                // Même distinction métier: reliquat dans la fenêtre => "reste" non prioritaire.
-                remainder.setPrioriteAssignation(false);
+                // Nouvelle règle métier: un "reste" est traité comme un NA.
+                remainder.setPrioriteAssignation(true);
                 pendingClients.add(remainder);
             }
         }
